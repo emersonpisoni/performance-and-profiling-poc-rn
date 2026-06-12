@@ -18,6 +18,8 @@ A regra que explica 90% dos problemas de performance em RN é entender quais thr
 
 **Insight central:** as threads são independentes. Se a JS thread trava, a UI thread pode continuar desenhando uma animação — desde que essa animação não dependa da JS. É exatamente isso que a **Demo 1** prova.
 
+> 📐 **Diagramas:** veja [docs/arquitetura.md](docs/arquitetura.md) para o passo a passo visual de como o RN funciona, comparado com **React Web** e **código nativo**.
+
 ### Orçamento de frame (frame budget)
 Para 60 FPS, cada frame tem **~16,6 ms** (a 120 Hz, ~8,3 ms). Se a JS thread ou a UI thread estourar esse orçamento, um frame é perdido → **jank** (travada/engasgo visível). Profiling é, no fundo, descobrir quem estourou os 16 ms e por quê.
 
