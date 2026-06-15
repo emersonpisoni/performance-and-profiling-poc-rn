@@ -103,7 +103,94 @@ flowchart LR
 
 ---
 
-## 4. Por que a New Architecture é mais rápida: bridge antiga vs JSI
+## 4. Por que o React Native tem MAIS threads que o React Web?
+
+A resposta é contraintuitiva: **o número de threads não é uma decisão do React — é uma imposição da plataforma (o _host_) onde ele roda.** O React em si (o reconciler/Virtual DOM) é single-thread nos dois casos. O que muda é o ambiente ao redor.
+
+### 4.1. A causa: o host é diferente
+
+```mermaid
+flowchart TB
+    subgraph BROWSER["🌐 Host = Browser (modelo FIXO, você não escolhe)"]
+        direction TB
+        BT["🧵 1 Main thread (event loop)"]
+        BT --- BJS["JS + React DOM"]
+        BT --- BLAY["Layout / Reflow"]
+        BT --- BPAINT["Paint"]
+        WW["🧵 Web Worker<br/>❌ NÃO acessa o DOM<br/>→ inútil para renderizar UI"]
+    end
+
+    subgraph NATIVE["📱 Host = SO nativo (iOS / Android)"]
+        direction TB
+        UIT["🧵 Main/UI thread (do SO)<br/>✋ OBRIGATÓRIA p/ mexer em<br/>UIView · android.View"]
+        HERMES["🧵 JS thread (Hermes)<br/>VM embutida pelo RN<br/>→ roda fora da UI thread"]
+        SHADOW["🧵 Render/Shadow thread<br/>layout com Yoga"]
+        HERMES <-->|JSI| SHADOW
+        SHADOW --> UIT
+    end
+```
+
+Duas restrições do mundo nativo **forçam** a separação:
+
+1. **O SO exige que toda UI rode na main/UI thread.** No iOS e no Android, mexer em `UIView`/`android.View` só é permitido na thread principal. Essa thread já existe e é do sistema.
+2. **JavaScript não roda nativamente em mobile** — o RN precisa *embutir* uma engine (Hermes). Essa VM roda naturalmente numa thread **separada** da UI thread do SO.
+
+Só por existir nesse ambiente, o RN **já nasce com duas threads** (JS + UI). A partir daí veio a decisão de design: como já estão separadas, o RN colocou também o **layout (Yoga) numa render/shadow thread própria**, para não travar nem o JS nem a UI.
+
+No browser é o oposto: **JS e renderização compartilham a mesma main thread** e você não pode mudar isso. Existe `Web Worker`, mas ele **não acessa o DOM**, então não serve para renderizar a UI. Por isso o React DOM é obrigado a viver numa thread só.
+
+### 4.2. A arquitetura do React Native em camadas
+
+```mermaid
+flowchart TB
+    subgraph L1["🟦 Camada JavaScript — JS thread"]
+        JSX["Seu código: componentes, hooks, lógica"]
+        REACT["React Reconciler (Virtual DOM / diff)"]
+        JSX --> REACT
+    end
+
+    subgraph L2["🟨 Engine — JS thread"]
+        HERMES["Hermes (executa o bytecode JS)"]
+    end
+
+    subgraph L3["⚡ JSI — ponte C++"]
+        JSI["JavaScript Interface<br/>chamadas síncronas, sem JSON"]
+    end
+
+    subgraph L4["🟩 Núcleo C++ (Fabric) — Render/Shadow thread"]
+        FABRIC["Fabric: monta a Shadow Tree"]
+        YOGA["Yoga: calcula o layout (flexbox)"]
+        TURBO["TurboModules: módulos nativos sob demanda"]
+        FABRIC --> YOGA
+    end
+
+    subgraph L5["🟥 Plataforma nativa — UI thread (main)"]
+        VIEWS["UIView (iOS) · android.View (Android)"]
+        GPU["Desenho · gestos · animações nativas"]
+        VIEWS --> GPU
+    end
+
+    REACT --> HERMES --> JSI --> FABRIC
+    YOGA --> VIEWS
+    TURBO -.->|acesso a APIs nativas:<br/>câmera, storage, etc.| VIEWS
+    GPU --> PIX(["Pixels 🖼️"])
+```
+
+**Lendo de cima para baixo:** seu código React roda no Hermes (JS thread) → atravessa o JSI → o Fabric monta a árvore e o Yoga calcula o layout (render thread) → as views nativas são criadas/atualizadas e desenhadas (UI thread). Os **TurboModules** são o caminho lateral para APIs nativas do device.
+
+### 4.3. Em uma frase
+
+```
+Web:  1 plataforma single-thread para UI  →  React DOM cabe em 1 thread (sem escolha)
+RN :  UI nativa OBRIGA a main thread  +  JS precisa de uma VM embutida (outra thread)
+      →  já são 2, e o RN adiciona a de layout para desacoplar  →  3
+```
+
+No web, a separação seria **impossível** (o browser não deixa). No React Native ela é **inevitável** (o SO obriga) **e desejável** (mantém a UI fluida mesmo com o JS travado) — a base de todo o estudo de performance.
+
+---
+
+## 5. Por que a New Architecture é mais rápida: bridge antiga vs JSI
 
 ```mermaid
 flowchart TB
@@ -125,7 +212,7 @@ flowchart TB
 
 ---
 
-## 5. Tabela comparativa
+## 6. Tabela comparativa
 
 | Aspecto | React Web | React Native (New Arch) | Nativo (Swift/Kotlin) |
 | --- | --- | --- | --- |
@@ -139,7 +226,7 @@ flowchart TB
 
 ---
 
-## 6. A grande sacada para performance
+## 7. A grande sacada para performance
 
 ```mermaid
 flowchart LR
