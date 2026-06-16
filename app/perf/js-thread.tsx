@@ -6,7 +6,7 @@ import { Card, DemoButton } from '@/components/perf/ui';
 import { ThreadMonitor } from '@/components/perf/thread-monitor';
 import { ThemedText } from '@/components/themed-text';
 
-/** Trabalho síncrono pesado: ocupa a JS thread por aproximadamente `ms`. */
+/** Heavy synchronous work: occupies the JS thread for roughly `ms`. */
 function busyWait(ms: number) {
   const end = Date.now() + ms;
   let x = 0;
@@ -17,9 +17,9 @@ function busyWait(ms: number) {
 }
 
 /**
- * Mesma carga, porém quebrada em fatias. Entre cada fatia devolvemos o controle
- * ao event loop (setTimeout 0), então a JS thread consegue processar o
- * setInterval do monitor, toques, etc. — sem congelar a UI.
+ * Same workload, but split into chunks. Between each chunk we yield control
+ * back to the event loop (setTimeout 0), so the JS thread can process the
+ * monitor's setInterval, touches, etc. — without freezing the UI.
  */
 function busyWaitChunked(totalMs: number, chunkMs: number, onDone: () => void) {
   let remaining = totalMs;
@@ -40,23 +40,23 @@ export default function JsThreadDemo() {
       <Stack.Screen options={{ title: 'JS thread vs UI thread' }} />
 
       <Card>
-        <ThemedText type="subtitle">O que observar</ThemedText>
+        <ThemedText type="subtitle">What to observe</ThemedText>
         <ThreadMonitor />
         <ThemedText style={styles.note}>
-          O quadrado azul gira na UI thread (Reanimated). O contador é atualizado pela JS thread.
-          Quando você bloqueia a JS thread, o contador congela e &quot;maior travada&quot; dispara —
-          mas o quadrado continua girando. Isso prova que são threads diferentes.
+          The blue square spins on the UI thread (Reanimated). The counter is updated by the JS
+          thread. When you block the JS thread, the counter freezes and &quot;worst stall&quot; spikes —
+          but the square keeps spinning. That proves they are different threads.
         </ThemedText>
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">1. Bloquear a JS thread</ThemedText>
+        <ThemedText type="subtitle">1. Block the JS thread</ThemedText>
         <ThemedText style={styles.note}>
-          Loop síncrono de ~2s. Tudo na JS thread para: contador, toques e navegação.
+          A ~2s synchronous loop. Everything on the JS thread stops: counter, touches, navigation.
         </ThemedText>
         <DemoButton
           variant="danger"
-          label="Bloquear JS por 2s"
+          label="Block JS for 2s"
           onPress={() => {
             busyWait(2000);
           }}
@@ -64,13 +64,13 @@ export default function JsThreadDemo() {
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">2. Mesma carga, em fatias</ThemedText>
+        <ThemedText type="subtitle">2. Same workload, chunked</ThemedText>
         <ThemedText style={styles.note}>
-          A mesma ~2s de trabalho, mas em pedaços de 16ms devolvendo o controle ao event loop.
-          O contador continua subindo e a UI responde.
+          The same ~2s of work, but in 16ms chunks that yield control back to the event loop.
+          The counter keeps going up and the UI stays responsive.
         </ThemedText>
         <DemoButton
-          label={running ? 'Processando…' : 'Rodar em fatias (16ms)'}
+          label={running ? 'Processing…' : 'Run chunked (16ms)'}
           onPress={() => {
             if (running) return;
             setRunning(true);
@@ -80,11 +80,11 @@ export default function JsThreadDemo() {
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">Conclusão</ThemedText>
+        <ThemedText type="subtitle">Takeaway</ThemedText>
         <ThemedText style={styles.note}>
-          Trabalho pesado e síncrono na JS thread é a causa #1 de jank. Soluções: dividir em
-          fatias, adiar com InteractionManager/requestIdleCallback, mover para fora da JS thread
-          (worklets, módulos nativos) ou simplesmente fazer menos trabalho.
+          Heavy synchronous work on the JS thread is the #1 cause of jank. Fixes: split into chunks,
+          defer with InteractionManager/requestIdleCallback, move off the JS thread (worklets, native
+          modules), or simply do less work.
         </ThemedText>
       </Card>
     </ScrollView>

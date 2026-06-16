@@ -8,32 +8,32 @@ const DEMOS: { href: '/perf/js-thread' | '/perf/re-renders' | '/perf/list-virtua
   {
     href: '/perf/js-thread',
     title: '1 · JS thread vs UI thread',
-    desc: 'Bloqueie a JS thread e veja a UI congelar enquanto a animação na UI thread segue suave.',
+    desc: 'Block the JS thread and watch the UI freeze while the UI-thread animation stays smooth.',
   },
   {
     href: '/perf/re-renders',
-    title: '2 · Re-renders & memoização',
-    desc: 'Visualize quais componentes re-renderizam e como React.memo ajuda (ou falha).',
+    title: '2 · Re-renders & memoization',
+    desc: 'Visualize which components re-render and how React.memo helps (or fails).',
   },
   {
     href: '/perf/list-virtualization',
-    title: '3 · Listas & virtualização',
-    desc: 'Compare ScrollView+map contra FlatList virtualizada com 3000 itens.',
+    title: '3 · Lists & virtualization',
+    desc: 'Compare ScrollView+map against a virtualized FlatList with 3000 items.',
   },
   {
     href: '/perf/animations',
-    title: '4 · Animações: JS vs UI thread',
-    desc: 'Animação por setState vs Reanimated worklet, sob carga da JS thread.',
+    title: '4 · Animations: JS vs UI thread',
+    desc: 'setState-driven animation vs a Reanimated worklet, under JS-thread load.',
   },
 ];
 
 export default function PerfLabScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <ThemedText type="title">Lab de Performance</ThemedText>
+      <ThemedText type="title">Performance Lab</ThemedText>
       <ThemedText style={styles.intro}>
-        Experimentos para validar o estudo de profiling em React Native. Toque para abrir cada demo.
-        O resumo teórico completo está no README do projeto.
+        Experiments to validate the React Native profiling study. Tap to open each demo.
+        The full theory summary lives in the project README.
       </ThemedText>
 
       {DEMOS.map((demo) => (

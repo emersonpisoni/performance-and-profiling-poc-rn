@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, DemoButton } from '@/components/perf/ui';
 import { ThemedText } from '@/components/themed-text';
 
-/** Cores que ciclam a cada render, para "piscar" quando o componente re-renderiza. */
+/** Colors that cycle on each render, to "flash" when the component re-renders. */
 const COLORS = ['#0a7ea4', '#16a34a', '#d97706', '#9333ea', '#dc2626'];
 
 function Box({ name, payload }: { name: string; payload?: { id: number } }) {
@@ -20,31 +20,31 @@ function Box({ name, payload }: { name: string; payload?: { id: number } }) {
   );
 }
 
-// Versão memoizada: só re-renderiza se as props mudarem (comparação rasa).
+// Memoized version: only re-renders if its props change (shallow comparison).
 const MemoBox = React.memo(Box);
 
 export default function ReRendersDemo() {
   const [count, setCount] = useState(0);
   const [unstableProp, setUnstableProp] = useState(false);
 
-  // Quando ligado, passamos um objeto NOVO a cada render -> quebra o React.memo.
+  // When on, we pass a NEW object on every render -> breaks React.memo.
   const memoPayload = unstableProp ? { id: count } : undefined;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Stack.Screen options={{ title: 'Re-renders & memoização' }} />
+      <Stack.Screen options={{ title: 'Re-renders & memoization' }} />
 
       <Card>
-        <ThemedText type="subtitle">Forçar re-render do pai</ThemedText>
+        <ThemedText type="subtitle">Force a parent re-render</ThemedText>
         <ThemedText style={styles.note}>
-          Cada toque incrementa o estado do pai. Observe quais filhos &quot;piscam&quot; (re-renderizam).
+          Each tap increments the parent state. Watch which children &quot;flash&quot; (re-render).
         </ThemedText>
-        <DemoButton label={`Incrementar (${count})`} onPress={() => setCount((c) => c + 1)} />
+        <DemoButton label={`Increment (${count})`} onPress={() => setCount((c) => c + 1)} />
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">Filhos SEM memo</ThemedText>
-        <ThemedText style={styles.note}>Re-renderizam toda vez que o pai re-renderiza.</ThemedText>
+        <ThemedText type="subtitle">Children WITHOUT memo</ThemedText>
+        <ThemedText style={styles.note}>They re-render every time the parent re-renders.</ThemedText>
         <View style={styles.row}>
           <Box name="A" />
           <Box name="B" />
@@ -52,9 +52,9 @@ export default function ReRendersDemo() {
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">Filhos COM React.memo</ThemedText>
+        <ThemedText type="subtitle">Children WITH React.memo</ThemedText>
         <ThemedText style={styles.note}>
-          Não re-renderizam — props estáveis. A não ser que você quebre a memoização abaixo.
+          They don&apos;t re-render — stable props. Unless you break memoization below.
         </ThemedText>
         <View style={styles.row}>
           <MemoBox name="C" payload={memoPayload} />
@@ -62,21 +62,22 @@ export default function ReRendersDemo() {
         </View>
         <DemoButton
           variant="neutral"
-          label={unstableProp ? 'Prop instável: LIGADA' : 'Prop instável: desligada'}
+          label={unstableProp ? 'Unstable prop: ON' : 'Unstable prop: off'}
           onPress={() => setUnstableProp((v) => !v)}
         />
         <ThemedText style={styles.note}>
-          Com a prop instável ligada, passamos um objeto novo a cada render. O React.memo compara por
-          referência, vê &quot;mudou&quot; e re-renderiza C e D — o erro clássico que useMemo/useCallback evitam.
+          With the unstable prop on, we pass a new object on every render. React.memo compares by
+          reference, sees &quot;changed&quot; and re-renders C and D — the classic mistake that
+          useMemo/useCallback prevent.
         </ThemedText>
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">Conclusão</ThemedText>
+        <ThemedText type="subtitle">Takeaway</ThemedText>
         <ThemedText style={styles.note}>
-          Re-render não é grátis. React.memo, useMemo e useCallback ajudam, mas só funcionam se as
-          props/referências forem estáveis. Use o React DevTools Profiler (&quot;Highlight updates&quot;) para
-          ver exatamente o que re-renderiza.
+          Re-rendering isn&apos;t free. React.memo, useMemo, and useCallback help, but only work when
+          props/references are stable. Use the React DevTools Profiler (&quot;Highlight updates&quot;) to see
+          exactly what re-renders.
         </ThemedText>
       </Card>
     </ScrollView>

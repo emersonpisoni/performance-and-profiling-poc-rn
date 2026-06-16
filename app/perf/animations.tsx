@@ -21,7 +21,7 @@ function busyWait(ms: number) {
   return x;
 }
 
-/** Animação dirigida pela JS thread: cada frame é um setState via requestAnimationFrame. */
+/** Animation driven by the JS thread: each frame is a setState via requestAnimationFrame. */
 function JsAnimatedBox() {
   const [x, setX] = useState(0);
   const dir = useRef(1);
@@ -51,7 +51,7 @@ function JsAnimatedBox() {
   return <View style={[styles.box, { backgroundColor: '#c0392b', transform: [{ translateX: x }] }]} />;
 }
 
-/** Animação na UI thread: o worklet roda independente da JS thread. */
+/** Animation on the UI thread: the worklet runs independently of the JS thread. */
 function ReanimatedBox() {
   const x = useSharedValue(0);
   useEffect(() => {
@@ -64,14 +64,14 @@ function ReanimatedBox() {
 export default function AnimationsDemo() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Stack.Screen options={{ title: 'Animações: JS vs UI thread' }} />
+      <Stack.Screen options={{ title: 'Animations: JS vs UI thread' }} />
 
       <Card>
         <ThemedText type="subtitle">JS thread (requestAnimationFrame + setState)</ThemedText>
         <View style={styles.track}>
           <JsAnimatedBox />
         </View>
-        <ThemedText style={styles.note}>Cada frame depende da JS thread estar livre.</ThemedText>
+        <ThemedText style={styles.note}>Each frame depends on the JS thread being free.</ThemedText>
       </Card>
 
       <Card>
@@ -79,16 +79,16 @@ export default function AnimationsDemo() {
         <View style={styles.track}>
           <ReanimatedBox />
         </View>
-        <ThemedText style={styles.note}>Roda fora da JS thread.</ThemedText>
+        <ThemedText style={styles.note}>Runs off the JS thread.</ThemedText>
       </Card>
 
       <Card>
-        <ThemedText type="subtitle">Teste de estresse</ThemedText>
+        <ThemedText type="subtitle">Stress test</ThemedText>
         <ThemedText style={styles.note}>
-          Bloqueie a JS thread e observe: a caixa vermelha (JS) congela; a verde (Reanimated)
-          continua suave. Por isso animações devem rodar na UI thread sempre que possível.
+          Block the JS thread and watch: the red box (JS) freezes; the green one (Reanimated) stays
+          smooth. That&apos;s why animations should run on the UI thread whenever possible.
         </ThemedText>
-        <DemoButton variant="danger" label="Bloquear JS por 1,5s" onPress={() => busyWait(1500)} />
+        <DemoButton variant="danger" label="Block JS for 1.5s" onPress={() => busyWait(1500)} />
       </Card>
     </ScrollView>
   );

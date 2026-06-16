@@ -1,119 +1,119 @@
-# Performance & Profiling em React Native — Estudo
+# Performance & Profiling in React Native — Study
 
-POC de estudo sobre **performance e profiling** em React Native (Expo SDK 54, RN 0.81, New Architecture). Cada conceito tem uma demo interativa em [app/perf/](app/perf/), acessível pela aba **Perf Lab**.
+A study POC about **performance and profiling** in React Native (Expo SDK 54, RN 0.81, New Architecture). Each concept has an interactive demo in [app/perf/](app/perf/), reachable from the **Perf Lab** tab.
 
-> Como rodar: `npm install` e depois `npm run ios` / `npm run android`. Abra a aba **Perf Lab** e percorra as 4 demos. Para perfis confiáveis, **sempre meça em release** (`npx expo run:ios --configuration Release`), não em dev — o modo dev tem overhead que distorce tudo.
+> How to run: `npm install`, then `npm run ios` / `npm run android`. Open the **Perf Lab** tab and walk through the 4 demos. For reliable profiles, **always measure in release** (`npx expo run:ios --configuration Release`), not in dev — dev mode adds overhead that distorts everything.
 
 ---
 
-## 1. O modelo mental: as duas threads
+## 1. The mental model: the threads
 
-A regra que explica 90% dos problemas de performance em RN é entender quais threads existem e o que roda em cada uma:
+The rule that explains 90% of RN performance problems is understanding which threads exist and what runs on each:
 
-| Thread | O que roda | Quando vira gargalo |
+| Thread | What runs on it | When it becomes the bottleneck |
 | --- | --- | --- |
-| **JS thread** | Seu código React, lógica de negócio, handlers, `setState`, requisições, `requestAnimationFrame` | Trabalho síncrono pesado, re-renders demais, JSON gigante, animações via `setState` |
-| **UI thread** (main/native) | Layout, desenho, gestos, animações nativas (Reanimated worklets) | Views muito profundas, overdraw, animações que dependem da JS |
-| **Render/Shadow thread** | Cálculo de layout (Yoga) e _commit_ da árvore | Árvores enormes, montar listas inteiras de uma vez |
+| **JS thread** | Your React code, business logic, handlers, `setState`, requests, `requestAnimationFrame` | Heavy synchronous work, too many re-renders, huge JSON, `setState`-driven animations |
+| **UI thread** (main/native) | Layout, drawing, gestures, native animations (Reanimated worklets) | Very deep view trees, overdraw, animations that depend on the JS thread |
+| **Render/Shadow thread** | Layout calculation (Yoga) and the tree _commit_ | Huge trees, mounting whole lists at once |
 
-**Insight central:** as threads são independentes. Se a JS thread trava, a UI thread pode continuar desenhando uma animação — desde que essa animação não dependa da JS. É exatamente isso que a **Demo 1** prova.
+**Core insight:** the threads are independent. If the JS thread freezes, the UI thread can keep drawing an animation — as long as that animation doesn't depend on JS. That's exactly what **Demo 1** proves.
 
-> 📐 **Diagramas:** veja [docs/arquitetura.md](docs/arquitetura.md) para o passo a passo visual de como o RN funciona, comparado com **React Web** e **código nativo**.
+> 📐 **Diagrams:** see [docs/architecture.md](docs/architecture.md) for the visual walkthrough of how RN works, compared with **React Web** and **native code**.
 
-### Orçamento de frame (frame budget)
-Para 60 FPS, cada frame tem **~16,6 ms** (a 120 Hz, ~8,3 ms). Se a JS thread ou a UI thread estourar esse orçamento, um frame é perdido → **jank** (travada/engasgo visível). Profiling é, no fundo, descobrir quem estourou os 16 ms e por quê.
-
----
-
-## 2. A New Architecture (importante em 2025/2026)
-
-Desde o RN 0.76 a **New Architecture** é o padrão (este projeto usa). Vale entender os termos para discutir o assunto:
-
-- **JSI (JavaScript Interface):** substitui a antiga _bridge_ assíncrona baseada em serialização JSON. Permite que JS chame funções nativas **de forma síncrona e sem serializar**, via referências diretas. Mata o gargalo clássico da bridge.
-- **Fabric:** o novo renderizer. Permite renderização concorrente, melhor interop com a UI thread e medições de layout síncronas.
-- **TurboModules:** módulos nativos carregados sob demanda (_lazy_) e com tipagem via Codegen.
-- **Hermes:** engine JS otimizada para mobile (startup rápido, menor uso de memória, bytecode pré-compilado). É o padrão no Expo.
-
-Por que importa: muitos conselhos antigos ("evite passar pela bridge", "use `useNativeDriver`") mudaram de forma com a New Architecture. Saber o que ainda se aplica é o que diferencia uma discussão atual.
+### Frame budget
+For 60 FPS, each frame has **~16.6 ms** (at 120 Hz, ~8.3 ms). If the JS thread or the UI thread blows that budget, a frame is dropped → **jank** (visible stutter). Profiling is, at its core, finding out who blew the 16 ms and why.
 
 ---
 
-## 3. As causas de jank mais comuns (e as demos)
+## 2. The New Architecture (key in 2025/2026)
+
+Since RN 0.76 the **New Architecture** is the default (this project uses it). Worth understanding the terms to discuss the topic:
+
+- **JSI (JavaScript Interface):** replaces the old asynchronous, JSON-serialization-based _bridge_. Lets JS call native functions **synchronously and without serializing**, via direct references. Kills the classic bridge bottleneck.
+- **Fabric:** the new renderer. Enables concurrent rendering, better interop with the UI thread, and synchronous layout measurement.
+- **TurboModules:** native modules loaded on demand (_lazy_) and typed via Codegen.
+- **Hermes:** a JS engine optimized for mobile (fast startup, lower memory, precompiled bytecode). It's the default in Expo.
+
+Why it matters: many old pieces of advice ("avoid the bridge", "use `useNativeDriver`") changed shape with the New Architecture. Knowing what still applies is what makes for an up-to-date discussion.
+
+---
+
+## 3. The most common causes of jank (and the demos)
 
 ### Demo 1 — JS thread vs UI thread · [app/perf/js-thread.tsx](app/perf/js-thread.tsx)
-Um loop síncrono de 2s bloqueia a JS thread. **Observação:** o contador da JS thread congela e a métrica "maior travada" dispara, mas o quadrado do Reanimated **continua girando**. A segunda parte mostra a mesma carga quebrada em fatias de 16 ms (`setTimeout`), que mantém a UI responsiva.
-**Conceito:** trabalho pesado síncrono é a causa #1 de travamentos. Soluções: fatiar, adiar (`InteractionManager.runAfterInteractions`), mover para worklets/nativo, ou fazer menos trabalho.
+A synchronous 2s loop blocks the JS thread. **What to observe:** the JS-thread counter freezes and the "worst stall" metric spikes, but the Reanimated square **keeps spinning**. The second part shows the same workload split into 16 ms chunks (`setTimeout`), which keeps the UI responsive.
+**Concept:** heavy synchronous work is the #1 cause of freezes. Fixes: chunk it, defer it (`InteractionManager.runAfterInteractions`), move it to worklets/native, or just do less work.
 
-### Demo 2 — Re-renders & memoização · [app/perf/re-renders.tsx](app/perf/re-renders.tsx)
-Componentes "piscam" (trocam de cor) a cada render. Filhos sem `React.memo` re-renderizam sempre que o pai re-renderiza; os memoizados não — **até** você passar uma prop instável (objeto novo a cada render), que quebra a comparação rasa do `memo`.
-**Conceito:** `React.memo`, `useMemo` e `useCallback` só funcionam com **referências estáveis**. Render desnecessário é custo de CPU na JS thread. Ferramenta para enxergar: React DevTools Profiler com _"Highlight updates when components render"_.
+### Demo 2 — Re-renders & memoization · [app/perf/re-renders.tsx](app/perf/re-renders.tsx)
+Components "flash" (change color) on every render. Children without `React.memo` re-render whenever the parent re-renders; memoized ones don't — **until** you pass an unstable prop (a new object on every render), which breaks `memo`'s shallow comparison.
+**Concept:** `React.memo`, `useMemo`, and `useCallback` only work with **stable references**. Unnecessary renders are CPU cost on the JS thread. Tool to see it: React DevTools Profiler with _"Highlight updates when components render"_.
 
-### Demo 3 — Listas & virtualização · [app/perf/list-virtualization.tsx](app/perf/list-virtualization.tsx)
-3000 itens renderizados com `ScrollView + map` (monta todos de uma vez) vs `FlatList` (virtualiza, renderiza só o visível). A tela mede o **tempo de montagem** — a diferença é gritante.
-**Conceito:** nunca use `ScrollView + map` para listas longas. Use listas virtualizadas. Boas práticas: `keyExtractor` estável, `getItemLayout` para alturas fixas, `renderItem` memoizado, evitar funções/objetos inline. Em produção, **FlashList** (Shopify) é o padrão recomendado por ser ainda mais rápida.
+### Demo 3 — Lists & virtualization · [app/perf/list-virtualization.tsx](app/perf/list-virtualization.tsx)
+3000 items rendered with `ScrollView + map` (mounts all at once) vs `FlatList` (virtualizes, renders only what's visible). The screen measures the **mount time** — the difference is dramatic.
+**Concept:** never use `ScrollView + map` for long lists. Use virtualized lists. Best practices: stable `keyExtractor`, `getItemLayout` for fixed heights, memoized `renderItem`, avoid inline functions/objects. In production, **FlashList** (Shopify) is the recommended default because it's even faster.
 
-### Demo 4 — Animações: JS vs UI thread · [app/perf/animations.tsx](app/perf/animations.tsx)
-Duas caixas se movem: a vermelha via `requestAnimationFrame + setState` (JS thread); a verde via **Reanimated worklet** (UI thread). Ao bloquear a JS thread, a vermelha congela e a verde segue suave.
-**Conceito:** animações devem rodar na UI thread. **Reanimated 4** executa os worklets fora da JS thread, então animações e gestos não sofrem com a JS ocupada.
+### Demo 4 — Animations: JS vs UI thread · [app/perf/animations.tsx](app/perf/animations.tsx)
+Two boxes move: the red one via `requestAnimationFrame + setState` (JS thread); the green one via a **Reanimated worklet** (UI thread). When you block the JS thread, the red one freezes and the green one stays smooth.
+**Concept:** animations should run on the UI thread. **Reanimated 4** runs worklets off the JS thread, so animations and gestures don't suffer when JS is busy.
 
 ---
 
-## 4. Ferramentas de profiling (o que usar para medir)
+## 4. Profiling tools (what to use to measure)
 
-| Ferramenta | Para quê |
+| Tool | What for |
 | --- | --- |
-| **React DevTools — Profiler** | Ver renders/commits, _flamegraph_ de componentes, quem re-renderiza e por quê |
-| **Hermes Sampling Profiler** | Perfil da JS thread (funções que mais consomem CPU); abre no Chrome DevTools / React Native DevTools |
-| **Perf Monitor** (Dev Menu) | FPS da JS e da UI thread em tempo real, direto no device |
-| **React Native DevTools** | Inspeção de rede, performance, layout, console |
-| **Xcode Instruments / Android Studio Profiler** | Perfil nativo: CPU, memória, GPU, _time profiler_ |
-| **Sentry / Firebase Performance** | Monitoramento em produção: cold start, telas lentas, _frozen frames_ |
-| **Expo Atlas** (`EXPO_ATLAS=true`) | Análise de tamanho de bundle / dependências |
+| **React DevTools — Profiler** | See renders/commits, component _flamegraph_, who re-renders and why |
+| **Hermes Sampling Profiler** | Profile the JS thread (functions that burn the most CPU); opens in Chrome DevTools / React Native DevTools |
+| **Perf Monitor** (Dev Menu) | JS- and UI-thread FPS in real time, right on the device |
+| **React Native DevTools** | Network, performance, layout, and console inspection |
+| **Xcode Instruments / Android Studio Profiler** | Native profiling: CPU, memory, GPU, _time profiler_ |
+| **Sentry / Firebase Performance** | Production monitoring: cold start, slow screens, _frozen frames_ |
+| **Expo Atlas** (`EXPO_ATLAS=true`) | Bundle size / dependency analysis |
 
-**Método:** meça antes (baseline) → mude uma coisa → meça de novo. Sempre em **release**. Em device real, não só simulador.
-
----
-
-## 5. Métricas que importam
-
-- **Cold/warm start (TTI):** tempo até a app ficar interativa.
-- **FPS / frames perdidos (JS e UI):** suavidade de scroll e animação.
-- **Tap/interaction latency:** tempo entre o toque e a resposta.
-- **Tempo de montagem de tela / lista.**
-- **Uso de memória** (vazamentos = listeners/timers não limpos, imagens grandes).
-- **Tamanho do bundle** (afeta startup, especialmente web).
+**Method:** measure first (baseline) → change one thing → measure again. Always in **release**. On a real device, not just the simulator.
 
 ---
 
-## 6. Checklist de otimização (em ordem de impacto)
+## 5. Metrics that matter
 
-1. Garantir **New Architecture + Hermes** ligados (padrão no SDK 54).
-2. Listas longas → virtualizadas (**FlatList/FlashList**), nunca `ScrollView + map`.
-3. Eliminar **re-renders** desnecessários (`memo`/`useMemo`/`useCallback` com refs estáveis).
-4. Mover animações/gestos para a **UI thread** (Reanimated worklets).
-5. Tirar **trabalho pesado** da JS thread (fatiar, adiar, nativo).
-6. Otimizar **imagens** (`expo-image`, tamanhos corretos, cache).
-7. Reduzir o **bundle** (tree-shaking, imports pontuais, lazy loading de telas).
+- **Cold/warm start (TTI):** time until the app is interactive.
+- **FPS / dropped frames (JS and UI):** scroll and animation smoothness.
+- **Tap/interaction latency:** time between the tap and the response.
+- **Screen / list mount time.**
+- **Memory usage** (leaks = listeners/timers not cleaned up, large images).
+- **Bundle size** (affects startup, especially on web).
 
 ---
 
-## Estrutura do estudo no código
+## 6. Optimization checklist (in order of impact)
+
+1. Make sure **New Architecture + Hermes** are on (default in SDK 54).
+2. Long lists → virtualized (**FlatList/FlashList**), never `ScrollView + map`.
+3. Eliminate unnecessary **re-renders** (`memo`/`useMemo`/`useCallback` with stable refs).
+4. Move animations/gestures to the **UI thread** (Reanimated worklets).
+5. Take **heavy work** off the JS thread (chunk, defer, native).
+6. Optimize **images** (`expo-image`, correct sizes, caching).
+7. Shrink the **bundle** (tree-shaking, targeted imports, lazy loading of screens).
+
+---
+
+## Study structure in the code
 
 ```
 app/
-  (tabs)/explore.tsx        # menu "Perf Lab" com links para as demos
+  (tabs)/explore.tsx        # "Perf Lab" menu linking to the demos
   perf/
-    _layout.tsx             # stack das demos
+    _layout.tsx             # demo stack
     js-thread.tsx           # Demo 1
     re-renders.tsx          # Demo 2
     list-virtualization.tsx # Demo 3
     animations.tsx          # Demo 4
 components/perf/
   thread-monitor.tsx        # spinner (UI thread) + ticker (JS thread)
-  ui.tsx                    # botões/cards reutilizados pelas demos
+  ui.tsx                    # buttons/cards reused by the demos
 ```
 
-## Referências
+## References
 
 - Expo — Versioned docs SDK 54: https://docs.expo.dev/versions/v54.0.0/
 - React Native — Performance: https://reactnative.dev/docs/performance

@@ -21,7 +21,7 @@ function Row({ item }: { item: { id: number; title: string } }) {
   );
 }
 
-/** Reporta quanto tempo levou do toque até o conteúdo estar montado/comitado. */
+/** Reports how long it took from the tap until the content was mounted/committed. */
 function MountTimer({ start, onMeasured }: { start: number; onMeasured: (ms: number) => void }) {
   useEffect(() => {
     onMeasured(Math.round(performance.now() - start));
@@ -35,7 +35,7 @@ export default function ListDemo() {
   const startRef = useRef(0);
 
   const data = useMemo(
-    () => Array.from({ length: COUNT }, (_, i) => ({ id: i, title: `Item número ${i}` })),
+    () => Array.from({ length: COUNT }, (_, i) => ({ id: i, title: `Item number ${i}` })),
     [],
   );
 
@@ -47,13 +47,13 @@ export default function ListDemo() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Listas & virtualização' }} />
+      <Stack.Screen options={{ title: 'Lists & virtualization' }} />
 
       <Card style={styles.controls}>
-        <ThemedText type="subtitle">{COUNT} itens</ThemedText>
+        <ThemedText type="subtitle">{COUNT} items</ThemedText>
         <View style={styles.row}>
-          <Metric label="tempo de montagem" value={mountMs == null ? '—' : `${mountMs}ms`} />
-          <Metric label="modo" value={mode === 'none' ? '—' : mode} />
+          <Metric label="mount time" value={mountMs == null ? '—' : `${mountMs}ms`} />
+          <Metric label="mode" value={mode === 'none' ? '—' : mode} />
         </View>
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
@@ -64,8 +64,8 @@ export default function ListDemo() {
           </View>
         </View>
         <ThemedText style={styles.note}>
-          ScrollView monta os {COUNT} itens de uma vez (alto tempo de montagem). A FlatList
-          virtualiza: só renderiza o que cabe na tela, então monta quase instantânea.
+          ScrollView mounts all {COUNT} items at once (high mount time). FlatList virtualizes: it
+          only renders what fits on screen, so it mounts almost instantly.
         </ThemedText>
       </Card>
 
@@ -85,7 +85,7 @@ export default function ListDemo() {
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => <Row item={item} />}
           ListHeaderComponent={<MountTimer start={startRef.current} onMeasured={setMountMs} />}
-          // getItemLayout evita medições e acelera o scroll para alturas fixas.
+          // getItemLayout avoids measurement and speeds up scrolling for fixed heights.
           getItemLayout={(_, index) => ({ length: 64, offset: 64 * index, index })}
         />
       )}

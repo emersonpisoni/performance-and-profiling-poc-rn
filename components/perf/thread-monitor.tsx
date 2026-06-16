@@ -11,14 +11,14 @@ import Animated, {
 import { ThemedText } from '@/components/themed-text';
 
 /**
- * Monitor das duas threads que importam em React Native:
+ * Monitor of the two threads that matter in React Native:
  *
- *  - Quadrado girando: animação rodando na UI thread via Reanimated (worklet).
- *    Continua suave mesmo se a JS thread travar.
- *  - Contador "JS thread": é atualizado por um setInterval na JS thread.
- *    Se a JS thread travar, ele CONGELA — é o nosso detector de jank.
+ *  - Spinning square: an animation running on the UI thread via Reanimated (worklet).
+ *    Stays smooth even if the JS thread freezes.
+ *  - "JS thread" counter: updated by a setInterval on the JS thread.
+ *    If the JS thread freezes, it STOPS — that's our jank detector.
  *
- * Comparar os dois lado a lado é o coração de quase todas as demos.
+ * Comparing the two side by side is the heart of almost every demo.
  */
 export function ThreadMonitor() {
   const rotation = useSharedValue(0);
@@ -26,7 +26,7 @@ export function ThreadMonitor() {
   const [worstGapMs, setWorstGapMs] = useState(0);
   const lastTick = useRef(Date.now());
 
-  // Animação na UI thread: independe completamente da JS thread.
+  // UI-thread animation: completely independent of the JS thread.
   useEffect(() => {
     rotation.value = withRepeat(
       withTiming(360, { duration: 1000, easing: Easing.linear }),
@@ -34,8 +34,8 @@ export function ThreadMonitor() {
     );
   }, [rotation]);
 
-  // "Batimento" na JS thread: deveria disparar a cada 100ms.
-  // Se demorar muito mais que isso, a JS thread esteve bloqueada.
+  // JS-thread "heartbeat": should fire every 100ms.
+  // If it takes much longer than that, the JS thread was blocked.
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
@@ -59,13 +59,13 @@ export function ThreadMonitor() {
       </View>
       <View style={styles.cell}>
         <ThemedText style={styles.ticks}>{jsTicks}</ThemedText>
-        <ThemedText style={styles.label}>JS thread{'\n'}(ticks de 100ms)</ThemedText>
+        <ThemedText style={styles.label}>JS thread{'\n'}(100ms ticks)</ThemedText>
       </View>
       <View style={styles.cell}>
         <ThemedText style={[styles.ticks, worstGapMs > 250 && styles.bad]}>
           {worstGapMs}ms
         </ThemedText>
-        <ThemedText style={styles.label}>maior travada{'\n'}da JS thread</ThemedText>
+        <ThemedText style={styles.label}>worst JS thread{'\n'}stall</ThemedText>
       </View>
     </View>
   );

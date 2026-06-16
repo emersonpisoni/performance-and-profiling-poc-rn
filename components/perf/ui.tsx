@@ -5,8 +5,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 /**
- * Pequenos blocos de UI reutilizados pelas demos de performance.
- * O objetivo aqui NÃO é UI bonita, e sim deixar cada experimento legível.
+ * Small reusable UI blocks shared by the performance demos.
+ * The goal here is NOT pretty UI, but to keep each experiment readable.
  */
 
 export function DemoButton({
