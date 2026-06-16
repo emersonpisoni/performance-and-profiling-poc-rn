@@ -6,7 +6,6 @@ import { Card, DemoButton } from '@/components/perf/ui';
 import { ThreadMonitor } from '@/components/perf/thread-monitor';
 import { ThemedText } from '@/components/themed-text';
 
-/** Heavy synchronous work: occupies the JS thread for roughly `ms`. */
 function busyWait(ms: number) {
   const end = Date.now() + ms;
   let x = 0;
@@ -16,11 +15,6 @@ function busyWait(ms: number) {
   return x;
 }
 
-/**
- * Same workload, but split into chunks. Between each chunk we yield control
- * back to the event loop (setTimeout 0), so the JS thread can process the
- * monitor's setInterval, touches, etc. — without freezing the UI.
- */
 function busyWaitChunked(totalMs: number, chunkMs: number, onDone: () => void) {
   let remaining = totalMs;
   const step = () => {

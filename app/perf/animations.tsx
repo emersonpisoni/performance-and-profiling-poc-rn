@@ -21,7 +21,6 @@ function busyWait(ms: number) {
   return x;
 }
 
-/** Animation driven by the JS thread: each frame is a setState via requestAnimationFrame. */
 function JsAnimatedBox() {
   const [x, setX] = useState(0);
   const dir = useRef(1);
@@ -51,7 +50,6 @@ function JsAnimatedBox() {
   return <View style={[styles.box, { backgroundColor: '#c0392b', transform: [{ translateX: x }] }]} />;
 }
 
-/** Animation on the UI thread: the worklet runs independently of the JS thread. */
 function ReanimatedBox() {
   const x = useSharedValue(0);
   useEffect(() => {

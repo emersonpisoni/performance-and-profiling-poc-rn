@@ -4,11 +4,6 @@ import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-/**
- * Small reusable UI blocks shared by the performance demos.
- * The goal here is NOT pretty UI, but to keep each experiment readable.
- */
-
 export function DemoButton({
   label,
   onPress,

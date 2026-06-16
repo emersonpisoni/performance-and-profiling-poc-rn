@@ -5,7 +5,6 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, DemoButton } from '@/components/perf/ui';
 import { ThemedText } from '@/components/themed-text';
 
-/** Colors that cycle on each render, to "flash" when the component re-renders. */
 const COLORS = ['#0a7ea4', '#16a34a', '#d97706', '#9333ea', '#dc2626'];
 
 function Box({ name, payload }: { name: string; payload?: { id: number } }) {
@@ -20,14 +19,12 @@ function Box({ name, payload }: { name: string; payload?: { id: number } }) {
   );
 }
 
-// Memoized version: only re-renders if its props change (shallow comparison).
 const MemoBox = React.memo(Box);
 
 export default function ReRendersDemo() {
   const [count, setCount] = useState(0);
   const [unstableProp, setUnstableProp] = useState(false);
 
-  // When on, we pass a NEW object on every render -> breaks React.memo.
   const memoPayload = unstableProp ? { id: count } : undefined;
 
   return (

@@ -21,7 +21,6 @@ function Row({ item }: { item: { id: number; title: string } }) {
   );
 }
 
-/** Reports how long it took from the tap until the content was mounted/committed. */
 function MountTimer({ start, onMeasured }: { start: number; onMeasured: (ms: number) => void }) {
   useEffect(() => {
     onMeasured(Math.round(performance.now() - start));
@@ -85,7 +84,6 @@ export default function ListDemo() {
           keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => <Row item={item} />}
           ListHeaderComponent={<MountTimer start={startRef.current} onMeasured={setMountMs} />}
-          // getItemLayout avoids measurement and speeds up scrolling for fixed heights.
           getItemLayout={(_, index) => ({ length: 64, offset: 64 * index, index })}
         />
       )}

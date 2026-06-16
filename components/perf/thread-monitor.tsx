@@ -10,23 +10,12 @@ import Animated, {
 
 import { ThemedText } from '@/components/themed-text';
 
-/**
- * Monitor of the two threads that matter in React Native:
- *
- *  - Spinning square: an animation running on the UI thread via Reanimated (worklet).
- *    Stays smooth even if the JS thread freezes.
- *  - "JS thread" counter: updated by a setInterval on the JS thread.
- *    If the JS thread freezes, it STOPS — that's our jank detector.
- *
- * Comparing the two side by side is the heart of almost every demo.
- */
 export function ThreadMonitor() {
   const rotation = useSharedValue(0);
   const [jsTicks, setJsTicks] = useState(0);
   const [worstGapMs, setWorstGapMs] = useState(0);
   const lastTick = useRef(Date.now());
 
-  // UI-thread animation: completely independent of the JS thread.
   useEffect(() => {
     rotation.value = withRepeat(
       withTiming(360, { duration: 1000, easing: Easing.linear }),
@@ -34,8 +23,6 @@ export function ThreadMonitor() {
     );
   }, [rotation]);
 
-  // JS-thread "heartbeat": should fire every 100ms.
-  // If it takes much longer than that, the JS thread was blocked.
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
